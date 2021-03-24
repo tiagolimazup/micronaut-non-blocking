@@ -29,6 +29,7 @@ class CatResource(val cats: Cats) {
     fun get(@PathVariable id: Int) =
             id.also { log.info("the thread starting is ${Thread.currentThread().name}") }
                 .let { cats.findById(id) }
+                .let { Thread.sleep(1000) }
                 .also { log.info("the thread ending is ${Thread.currentThread().name}") }
 }
 

@@ -1,6 +1,15 @@
 micronaut:
   application:
-    name: micronautNonBlocking
+    name: micronaut-non-blocking
+  server:
+    netty:
+      worker:
+        event-loop-group: orange-talents
+  netty:
+    event-loops:
+      orange-talents:
+        num-threads: 1
+
 datasources:
   default:
     url: jdbc:h2:mem:devDb;MVCC=TRUE;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
@@ -9,4 +18,5 @@ datasources:
     password: ''
     schema-generate: CREATE_DROP
     dialect: H2
+
 jpa.default.properties.hibernate.hbm2ddl.auto: update
