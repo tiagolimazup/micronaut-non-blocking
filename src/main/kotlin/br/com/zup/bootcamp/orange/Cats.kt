@@ -8,11 +8,10 @@ import io.micronaut.http.annotation.Get
 import io.micronaut.http.annotation.PathVariable
 import io.micronaut.http.annotation.Post
 import io.micronaut.scheduling.TaskExecutors
-import io.reactivex.Single
+import io.micronaut.scheduling.annotation.ExecuteOn
 import io.reactivex.schedulers.Schedulers
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.TimeUnit
 import javax.inject.Named
 import javax.persistence.Entity
 import javax.persistence.GeneratedValue
@@ -20,6 +19,7 @@ import javax.persistence.GenerationType
 import javax.persistence.Id
 
 @Controller("/cats")
+@ExecuteOn(TaskExecutors.IO)
 class CatResource(@Named(TaskExecutors.IO) val ioExecutor: ExecutorService, val cats: Cats) {
 
     val ioScheduler = Schedulers.from(ioExecutor)
@@ -29,23 +29,16 @@ class CatResource(@Named(TaskExecutors.IO) val ioExecutor: ExecutorService, val 
     @Post
     fun create(@Body request: CreateNewCatRequest) =
             request.also { log.info("the thread starting is ${Thread.currentThread().name}") }
-                    .let { Single.just(it)
-                                .doOnSubscribe { log.info("the thread starting is ${Thread.currentThread().name}") }
-                                .subscribeOn(ioScheduler)
-                                .map { it.toCat() }
-                                .map { cats.save(it) }
-                                .doOnTerminate { log.info("the thread ending is ${java.lang.Thread.currentThread().name}") }}
+                    .let { it.toCat() }
+                    .let { cats.save(it) }
+                    .also { log.info("the thread ending is ${java.lang.Thread.currentThread().name}") }
 
     @Get("/{id}")
     fun get(@PathVariable id: Int) =
             id.also { log.info("the thread starting is ${Thread.currentThread().name}") }
-                .let { Single.just(it)
-                            .doOnSubscribe { log.info("the thread starting is ${Thread.currentThread().name}") }
-                            .subscribeOn(ioScheduler)
-                            .map { cats.findById(it) }
-                            .delay(1000, TimeUnit.MILLISECONDS)
-                            .observeOn(ioScheduler)
-                            .doOnTerminate { log.info("the thread ending is ${Thread.currentThread().name}") }}
+                .let { cats.findById(it) }
+                .also { Thread.sleep(1000) }
+                .also { log.info("the thread ending is ${Thread.currentThread().name}") }
 }
 
 data class CreateNewCatRequest(val name: String, val age: Int) {
